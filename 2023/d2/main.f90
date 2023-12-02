@@ -55,7 +55,7 @@ endfunction
 
 subroutine part1()
     integer, parameter :: bufflen=1024
-    integer :: io,  isize, maxR, maxG, maxB, res, currId, i, currnb
+    integer :: io,  isize, res, currId, i, currnb
     character(len=:),allocatable  :: s
     character(5)                  :: color
     character(len=bufflen) :: buffer
@@ -111,6 +111,63 @@ endsubroutine
 
 
 subroutine part2()
+    integer, parameter :: bufflen=1024
+    integer :: io,  isize, maxR, maxG, maxB, res, i, currnb
+    character(len=:),allocatable  :: s
+    character(5)                  :: color
+    character(len=bufflen) :: buffer
+    character              :: c
+    logical eof
+    print *,'input file = ', input
+
+    open(UNIT=1, file=input, status='old')
+    s = ''
+    color = ''
+    eof=.false.
+    res = 0
+readl:    do while(.not. eof)
+
+        !Lexing part
+        s=''
+        read(1,'(a)',advance='no', iostat=io, size=isize) buffer
+        if(isize.gt.0)then 
+            s=s//buffer(:isize)
+        endif
+        eof = io == iostat_end
+        if (eof) exit
+        !print*, 's = ', s 
+
+        !Parsing part
+        currnb = 0
+        i = 6
+        call getNum(s,currnb,i) 
+        maxR = 0
+        maxG = 0
+        maxB = 0
+
+        do while (i < len(s))
+            i = i+2
+
+        !Get amount of cubes
+            currnb = 0
+            call getNum(s, currnb, i)
+
+        !Get color of the cube
+            i = i+1
+            color = ''
+            call getCol(s, color, i)
+            if (color == 'green' .and. currnb > maxG) then 
+                maxG = currnb
+            else if (color == 'blue' .and. currnb > maxB) then
+                maxB = currnb
+            else if (color == 'red' .and. currnb > maxR) then
+                maxR = currnb
+            endif
+        enddo
+        res = res + maxG * maxB * maxR
+    end do readl
+    print*, 'res = ', res
+    close(1)
 endsubroutine
 
 endmodule
@@ -123,8 +180,8 @@ program main
     print *,''
 
     input='input.txt'
-    call part1()
-    !call part2()
+    !call part1()
+    call part2()
 
     print *,''
     print *,'Ending AOC main Day 1'
