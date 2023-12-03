@@ -126,6 +126,76 @@ contains
 
 
     subroutine part2()
+        integer, parameter :: bufflen=1024
+        integer :: io,  isize, res, i, nb, j, nbsym, nbVal, gearV, k
+        character(len=:),allocatable  :: s
+        character(len=bufflen) :: buffer
+        integer, dimension(19600)  :: symsX
+        integer, dimension(19600)  :: symsY
+        integer, dimension(141,141)   :: nums
+        logical                ::  eof
+
+        print *,'input file = ', input
+
+        open(UNIT=1, file=input, status='old')
+
+        eof=.false.
+        res = 0
+        symsX(:) = 0
+        symsY(:) = 0
+        nums(:, :) = 0
+        nbsym = 0
+            j = 1
+        do while(.not. eof)
+            !Lexing part
+            s = ''
+            read(1,'(a)',advance='no', iostat=io, size=isize) buffer
+            if(isize.gt.0)then 
+                s = s//buffer(:isize)
+            endif
+            eof = io == iostat_end
+            if (eof) exit
+
+            !Parsing part
+            !Get current Id
+            i = 1
+            do while (i <= len(s))
+                if (s(i:i) >=  '0' .and. s(i:i) <= '9') then
+                    k = i
+                    call getNum(s, nb, i)
+                    nums(k:i - 1, j) = nb
+                else
+                    if (s(i:i) == '*') then
+                        nbsym = nbsym + 1
+                        ! we stock the sym
+                        symsX(nbsym) = i
+                        symsY(nbsym) = j
+                    endif
+                    i = i + 1
+                endif
+            enddo
+                j = j + 1
+        end do 
+addG:   do i = 1, nbsym
+            nbVal = 0
+            gearV = 1
+col:        do j = max(symsY(i) - 1,0), min(symsY(i) + 1, 140)
+                do k = max(symsX(i) - 1,0), min(symsX(i) + 1, 140)
+                    if (nums(k,j) /= 0) then 
+                        nbVal = nbVal + 1
+                        if (nbVal > 2) cycle addG
+                            gearV = nums(k,j) * gearV
+                        !Don't continue if the number is at the middle 
+                        if (nums(symsX(i),j) /= 0) cycle col
+                    endif
+                enddo
+            enddo col
+            if (nbVal == 2) then 
+                res = res + gearV
+            endif
+        enddo addG
+        print*, 'res = ', res
+        close(1)
     endsubroutine
 
 endmodule
@@ -138,8 +208,8 @@ program main
     print *,''
 
     input='input.txt'
-    call part1()
-    !call part2()
+    !call part1()
+    call part2()
 
     print *,''
     print *,'Ending AOC main Day 1'
