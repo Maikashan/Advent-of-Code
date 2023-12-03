@@ -124,28 +124,23 @@ contains
         close(1)
     endsubroutine
 
-
-    subroutine part2()
-        integer, parameter :: bufflen=1024
-        integer :: io,  isize, res, i, nb, j, nbsym, nbVal, gearV, k
+    subroutine fillArrays(symsX, symsY, nums, nbsym)
+        integer, dimension(19600), intent(inout)  :: symsX, symsY
+        integer, dimension(141,141), intent(inout):: nums
+        integer, intent(out)                      ::nbsym
         character(len=:),allocatable  :: s
+        integer, parameter :: bufflen=1024
         character(len=bufflen) :: buffer
-        integer, dimension(19600)  :: symsX
-        integer, dimension(19600)  :: symsY
-        integer, dimension(141,141)   :: nums
+        integer :: io,  isize, i, nb, j, k
         logical                ::  eof
-
-        print *,'input file = ', input
-
         open(UNIT=1, file=input, status='old')
 
         eof=.false.
-        res = 0
         symsX(:) = 0
         symsY(:) = 0
         nums(:, :) = 0
         nbsym = 0
-            j = 1
+        j = 1
         do while(.not. eof)
             !Lexing part
             s = ''
@@ -157,7 +152,6 @@ contains
             if (eof) exit
 
             !Parsing part
-            !Get current Id
             i = 1
             do while (i <= len(s))
                 if (s(i:i) >=  '0' .and. s(i:i) <= '9') then
@@ -167,7 +161,6 @@ contains
                 else
                     if (s(i:i) == '*') then
                         nbsym = nbsym + 1
-                        ! we stock the sym
                         symsX(nbsym) = i
                         symsY(nbsym) = j
                     endif
@@ -176,6 +169,20 @@ contains
             enddo
                 j = j + 1
         end do 
+    endsubroutine
+
+
+    subroutine part2()
+        integer, dimension(19600)  :: symsX
+        integer, dimension(19600)  :: symsY
+        integer, dimension(141,141)   :: nums
+        integer :: res, nbVal, gearV, i, j, k, nbsym
+
+
+        print *,'input file = ', input
+        call fillArrays(symsX, symsY, nums, nbsym)
+
+        res = 0
 addG:   do i = 1, nbsym
             nbVal = 0
             gearV = 1
