@@ -92,6 +92,66 @@ subroutine part1()
 endsubroutine
 
 subroutine part2()
+        integer, parameter :: bufflen=1024
+        integer :: io,  isize, res, i, sizWin, nb, cardId, nbWin
+        character(len=:),allocatable  :: s
+        character(len=bufflen) :: buffer
+        integer, dimension(10) :: winNb
+        integer, dimension(218):: cards
+        logical                ::  eof
+
+        print *,'input file = ', input
+
+        open(UNIT=1, file=input, status='old')
+
+        eof=.false.
+
+        cards(:) = 1
+        res = 0
+
+        cardId = 0
+        do while(.not. eof)
+            cardId = cardId + 1
+            !Lexing part
+            s = ''
+            read(1,'(a)',advance='no', iostat=io, size=isize) buffer
+            if(isize.gt.0)then 
+                s = s//buffer(:isize)
+            endif
+            eof = io == iostat_end
+            if (eof) exit
+
+            !Parsing part
+            i = 1
+            nb = 0
+            sizWin = 0
+            winNb(:) = -1
+            call nextNb(s,i)
+            call getNum(s, nb, i)
+            call nextNb(s,i)
+            !Get all the winning numbers
+            do while (s(i:i) /= '|')
+                call getNum(s, nb, i)
+                sizWin = sizWin + 1
+                winNb(sizWin) = nb
+                call nextNb(s,i)
+            enddo
+
+            i = i + 1
+            nbWin = 1
+            call nextNb(s,i)
+            do while (i <= len(s))
+                call getNum(s, nb, i)
+                if ( ANY(winNb==nb)) then
+                    cards(cardId + nbWin) = cards(cardId) + cards(cardId + nbWin)
+                    nbWin = nbWin + 1
+                endif
+                call nextNb(s,i)
+            enddo
+            res = res + cards(cardId)
+        enddo
+        print*, 'res = ', res
+        close(1)
 endsubroutine
 
 endmodule
