@@ -176,14 +176,16 @@ program main
     use m
     
     print *,''
-    print *,'Begin AOC main Day 1'
+    print *,'Begin AOC main Day 2'
     print *,''
 
     input='input.txt'
-    !call part1()
+    print*, 'Part 1'
+    call part1()
+    print*, 'Part 2'
     call part2()
 
     print *,''
-    print *,'Ending AOC main Day 1'
+    print *,'Ending AOC main Day 2'
     print *,''
 endprogram
