@@ -176,7 +176,7 @@ program main
     use m
 
     print *,''
-    print *,'Begin AOC main Day 3'
+    print *,'Begin AOC main Day 6'
     print *,''
 
     input='input.txt'
@@ -186,6 +186,6 @@ program main
     call part2()
 
     print *,''
-    print *,'Ending AOC main Day 3'
+    print *,'Ending AOC main Day 6'
     print *,''
 endprogram
