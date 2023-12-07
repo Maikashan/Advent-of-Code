@@ -5,8 +5,9 @@ module m
 
 contains 
 
-function chrVal(c) result (val)
+function chrVal(c,p) result (val)
     character, intent(in) :: c
+    integer,intent(in)    :: p
     integer :: val
     select case(c)
     case('A')
@@ -16,7 +17,11 @@ function chrVal(c) result (val)
     case('Q')
         val = 12
     case('J')
+        if (p== 1)then
         val = 11
+        else
+            val = 1
+        endif
     case('T')
         val = 10
     case('9')
@@ -40,11 +45,12 @@ function chrVal(c) result (val)
     endselect
 endfunction
 
-function cmpChr(c1,c2) result(res)
+function cmpChr(c1,c2,p) result(res)
     character, intent(in) :: c1,c2
+    integer,intent(in)    :: p
     integer :: res, val1, val2
-    val1 = chrVal(c1)
-    val2 = chrVal(c2)
+    val1 = chrVal(c1,p)
+    val2 = chrVal(c2,p)
     if (val1 > val2) then
         res = 1
     else if (val1 < val2) then
@@ -54,12 +60,13 @@ function cmpChr(c1,c2) result(res)
     endif
 endfunction
 
-function cmpHnd(str1,str2) result(res)
+function cmpHnd(str1,str2,p) result(res)
     character(6), intent(in) :: str1,str2
+    integer,intent(in)       :: p
     integer :: res, i
     res = 0
     do i = 1, 6
-        res = cmpChr(str1(i:i), str2(i:i))
+        res = cmpChr(str1(i:i), str2(i:i),p)
         if (res /= 0) exit
     enddo
 endfunction
@@ -93,31 +100,88 @@ function typHnd(str) result(res)
         endif
     enddo
     if (curMax == 5) then
-        res = 'A'
+        res = 'T'
     else if (curMax == 4) then
-        res = 'K'
+        res = '9'
     else if (curMax == 3) then
         if (scnMax == 2) then
-            res = 'Q'
+            res = '8'
         else
-            res = 'J'
+            res = '7'
         endif
     else if (curMax == 2) then
         if (scnMax == 2) then
-            res = 'T'
+            res = '6'
         else
-            res = '9'
+            res = '5'
         endif
     else
-        res = '8'
+        res = '4'
     endif
 endfunction
 
-subroutine getHnd(str,res)
+function jTpHnd(str) result(res)
+    character(5), intent(in) :: str
+    character(:), allocatable:: hist
+    character :: res
+    integer   :: curMax, scnMax, curr, i, j, tmp, nbJ
+    curMax = 0
+    scnMax = 0
+    hist = ''
+    nbJ = 0
+    do i = 1, 5
+        curr = 1
+        if (str(i:i) == 'J') nbJ = nbJ + 1
+        if (str(i:i)/= 'J' .and. index(hist,str(i:i)) == 0) then
+            hist = hist // str(i:i)
+            j = index(str(i + 1:),str(i:i))
+            tmp = i
+            do while(j /= 0)
+                j = j + tmp
+                curr = curr + 1
+                tmp = j 
+                j = index(str(tmp + 1:),str(i:i))
+            enddo
+            if (curr > curMax)then
+                scnMax = curMax
+                curMax = curr
+            else if (curr  > scnMax) then
+                scnMax = curr
+            endif
+        endif
+    enddo
+    curMax = curMax + nbJ
+    if (curMax == 5) then
+        res = 'T'
+    else if (curMax == 4) then
+        res = '9'
+    else if (curMax == 3) then
+        if (scnMax == 2) then
+            res = '8'
+        else
+            res = '7'
+        endif
+    else if (curMax == 2) then
+        if (scnMax == 2) then
+            res = '6'
+        else
+            res = '5'
+        endif
+    else
+        res = '4'
+    endif
+endfunction
+
+subroutine getHnd(str,res,p)
     character(:),allocatable, intent(in)  :: str
     character(6), intent(out)             :: res
+    integer,intent(in)                    :: p
     read(str(1:5),*) res
-    res = typHnd(res)//res
+    if (p== 1) then
+        res = typHnd(res)//res
+    else 
+        res = jTpHnd(res)//res
+    endif
 endsubroutine
 
 
@@ -148,7 +212,8 @@ subroutine nextNb(str, i)
     enddo
 endsubroutine
 
-subroutine part1()
+subroutine part(p)
+        integer, intent(in)         :: p
         integer, parameter :: bufflen=1024
         integer, parameter :: LargeInt_K = selected_int_kind(32)
         integer(kind=LargeInt_K)      :: bid,res, tmpbid
@@ -159,7 +224,6 @@ subroutine part1()
         character(6), dimension(1000) :: hands
         integer(kind=LargeInt_K), dimension(1000)      :: bids
         logical                            ::  eof
-!248289075
         print *,'input file = ', input
 
         open(UNIT=1, file=input, status='old')
@@ -182,7 +246,7 @@ subroutine part1()
             hand = ''
             bid = 0
 
-            call getHnd(s, hand)
+            call getHnd(s, hand,p)
             nbHand = nbHand + 1
 
             i = 6
@@ -191,7 +255,7 @@ subroutine part1()
 
             ! insert at the right place the pair hand/bid
             do j = 1, nbHand
-                if (cmpHnd(hand, hands(j)) < 0) then
+                if (cmpHnd(hand, hands(j),p) < 0) then
                     tmphnd = hands(j)
                     tmpbid = bids(j)
                     hands(j) = hand
@@ -209,10 +273,6 @@ subroutine part1()
         close(1)
 endsubroutine
 
-subroutine part2()
-
-endsubroutine
-
 endmodule
 
 program main
@@ -224,9 +284,9 @@ program main
 
     input='input.txt'
     print*, 'Part 1'
-    call part1()
+    call part(1)
     print*, 'Part 2'
-    call part2()
+    call part(2)
 
     print *,''
     print *,'Ending AOC main Day 7'
