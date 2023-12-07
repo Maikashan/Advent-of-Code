@@ -71,39 +71,14 @@ function cmpHnd(str1,str2,p) result(res)
     enddo
 endfunction
 
-function typHnd(str) result(res)
-    character(5), intent(in) :: str
-    character(:), allocatable:: hist
-    character :: res
-    integer   :: curMax, scnMax, curr, i, j, tmp
-    curMax = -1
-    scnMax = -1
-    hist = ''
-    do i = 1, 5
-        curr = 1
-        if (index(hist,str(i:i)) == 0) then
-            hist = hist // str(i:i)
-            j = index(str(i + 1:),str(i:i))
-            tmp = i
-            do while(j /= 0)
-                j = j + tmp
-                curr = curr + 1
-                tmp = j 
-                j = index(str(j + 1:),str(i:i))
-            enddo
-            if (curr > curMax)then
-                scnMax = curMax
-                curMax = curr
-            else if (curr > scnMax) then
-                scnMax = curr
-            endif
-        endif
-    enddo
-    if (curMax == 5) then
+function chrHand(curMax, scnMax) result(res)
+    integer,intent(in) :: curMax, scnMax
+    character          :: res
+    if (curMax== 5) then
         res = 'T'
-    else if (curMax == 4) then
+    else if (curMax== 4) then
         res = '9'
-    else if (curMax == 3) then
+    else if (curMax== 3) then
         if (scnMax == 2) then
             res = '8'
         else
@@ -120,8 +95,10 @@ function typHnd(str) result(res)
     endif
 endfunction
 
-function jTpHnd(str) result(res)
+
+function typHnd(str,p) result(res)
     character(5), intent(in) :: str
+    integer,intent(in)       :: p
     character(:), allocatable:: hist
     character :: res
     integer   :: curMax, scnMax, curr, i, j, tmp, nbJ
@@ -131,8 +108,8 @@ function jTpHnd(str) result(res)
     nbJ = 0
     do i = 1, 5
         curr = 1
-        if (str(i:i) == 'J') nbJ = nbJ + 1
-        if (str(i:i)/= 'J' .and. index(hist,str(i:i)) == 0) then
+        if (str(i:i) == 'J'.and.p == 2) nbJ = nbJ + 1
+        if ((str(i:i)/= 'J'.or.p==1) .and. index(hist,str(i:i)) == 0) then
             hist = hist // str(i:i)
             j = index(str(i + 1:),str(i:i))
             tmp = i
@@ -151,25 +128,7 @@ function jTpHnd(str) result(res)
         endif
     enddo
     curMax = curMax + nbJ
-    if (curMax == 5) then
-        res = 'T'
-    else if (curMax == 4) then
-        res = '9'
-    else if (curMax == 3) then
-        if (scnMax == 2) then
-            res = '8'
-        else
-            res = '7'
-        endif
-    else if (curMax == 2) then
-        if (scnMax == 2) then
-            res = '6'
-        else
-            res = '5'
-        endif
-    else
-        res = '4'
-    endif
+    res = chrHand(curMax,scnMax)
 endfunction
 
 subroutine getHnd(str,res,p)
@@ -177,11 +136,7 @@ subroutine getHnd(str,res,p)
     character(6), intent(out)             :: res
     integer,intent(in)                    :: p
     read(str(1:5),*) res
-    if (p== 1) then
-        res = typHnd(res)//res
-    else 
-        res = jTpHnd(res)//res
-    endif
+    res = typHnd(res,p)//res
 endsubroutine
 
 
