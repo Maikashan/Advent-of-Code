@@ -99,7 +99,7 @@ endsubroutine
 
 subroutine part(p)
     integer, intent(in)               :: p
-    integer(kind=LargeInt_Vect)       :: nb, res, siz
+    integer(kind=LargeInt_Vect)       :: nb, res, siz, j 
     type(vector)                      :: curLst, prvLst, rmbNum
     logical                           :: eof
 
@@ -112,7 +112,12 @@ subroutine part(p)
         call parse(1, prvLst,eof)
         if (eof) exit
         call initVc(rmbNum, siz)
-        call addVec(rmbNum, atVect(prvLst, prvLst%curSiz))
+        if (p == 1) then
+            j = prvLst%curSiz
+        else
+            j = 1
+        endif
+        call addVec(rmbNum, atVect(prvLst, j))
 
         res = res + vecNxt(curLst, prvLst, rmbNum, p)
         call rmVect(prvLst)
@@ -132,7 +137,7 @@ program main
     print *,'Begin AOC main Day 9'
     print *,''
 
-    input='example1.txt'
+    input='input.txt'
     print*, 'Part 1'
     call part(1)
     print*, 'Part 2'
