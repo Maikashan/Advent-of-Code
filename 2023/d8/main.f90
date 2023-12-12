@@ -223,9 +223,9 @@ program main
     print *,'Begin AOC main Day 8'
     print *,''
 
-    input='example3.txt'
+    input='input.txt'
     print*, 'Part 1'
-    !call part1()
+    call part1()
     print*, 'Part 2'
     call part2()
 

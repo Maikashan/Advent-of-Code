@@ -237,7 +237,7 @@ program main
     print *,'Begin AOC main Day 7'
     print *,''
 
-    input='input.txt'
+    input='test.txt'
     print*, 'Part 1'
     call part(1)
     print*, 'Part 2'
