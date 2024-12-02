@@ -1,0 +1,25 @@
+CompileFlags:
+  Remove:
+  - -forward-unknown-to-host-compiler
+  - --generate-code*
+  - -rdc=*
+  - -Xcompiler*
+  - --options-file
+  - --expt-relaxed-constexpr
+  - --expt-extended-lambda
+  - -G
+  Add:
+  - -I/home/kerian/Documents/Advent-of-Code/2024/build/_deps/rmm-src/include
+  - -I/home/kerian/Documents/Advent-of-Code/2024/build/_deps/cccl-src/thrust/thrust/cmake/../.. 
+  - -I/home/kerian/Documents/Advent-of-Code/2024/build/_deps/cccl-src/libcudacxx/lib/cmake/libcudacxx/../../../include 
+  - -I/home/kerian/Documents/Advent-of-Code/2024/build/_deps/cccl-src/cub/cub/cmake/../.. 
+  - -I/home/kerian/Documents/Advent-of-Code/2024/build/_deps/fmt-src/include
+  - -I/home/kerian/Documents/Advent-of-Code/2024/build/_deps/spdlog-src/include
+  - -I/home/kerian/Documents/Advent-of-Code/2024/build/_deps/nvtx3-src/c/include 
+  - -I/home/kerian/Documents/Advent-of-Code/2024/build/_deps/raft-src/cpp/include
+  - -I/home/kerian/Documents/Advent-of-Code/2024/build/_deps/hnswlib-src 
+  - -I/home/kerian/Documents/Advent-of-Code/2024/build/_deps/cuco-src/include 
+  - -I/home/kerian/Documents/Advent-of-Code/2024/build/_deps/nvidiacutlass-src/include 
+  - -I/home/kerian/Documents/Advent-of-Code/2024/build/_deps/nvidiacutlass-build/include
+  - -I/usr/local/cuda/include 
+  - -isystem /usr/local/cuda/targets/x86_64-linux/include
