@@ -1,6 +1,7 @@
 # Advent-of-Code
 
-Trying to learn new langages, so my code definitely won't be as clean as it might be.
+I am using the advent of code to learn and deepen my understanding of various languages.
+Because of that, my code will not be as clean as it might be.
 
 ## 2023 : Fortran
 
@@ -9,5 +10,5 @@ fortran 90.
 
 ## 2024 : CUDA
 
-I wish to improve my experience with CUDA, even if the advent of code problems
-are not highly parallelizable, i will try it.
+I wish to improve my experience with modern CUDA, even if the advent of code problems
+are not really made for GPU.
