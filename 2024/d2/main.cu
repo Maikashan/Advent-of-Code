@@ -16,6 +16,8 @@
 #include <sstream>
 #include <vector>
 
+#include "rmm/cuda_stream_view.hpp"
+
 #define CUDA_CHECK_ERROR(call)                                                 \
     do                                                                         \
     {                                                                          \
@@ -186,81 +188,142 @@ static int part_1(const std::string& filename)
     return final_result;
 }
 
-__global__ void histogram(raft::device_span<unsigned long long> data,
-                          raft::device_span<unsigned long long> bins)
+__global__ void level_handling_block_unified(raft::device_span<int> data,
+                                             raft::device_span<int> result)
 {
-    unsigned int tid = threadIdx.x;
-    unsigned int i = blockDim.x * blockIdx.x + tid;
+    extern __shared__ int sdata[];
+    // The second part of the shared memory is allocated for the flags
+    int* flags = (sdata + blockDim.x);
 
+    unsigned int tid = threadIdx.x;
+    // We should never have more than a block
+    unsigned int i = blockDim.x * blockIdx.x + tid;
     if (i >= data.size())
         return;
 
-    atomicAdd(&bins[data[i]], 1);
+    sdata[tid] = data[tid];
+    __syncthreads();
+
+    flags[tid] = tid != 0 && sdata[tid] > sdata[tid - 1] ? 1 : 0;
+    __syncthreads();
+
+    // Block level reduce, without one value (the first in reality)
+    for (int s = blockDim.x / 2; s > 32; s /= 2)
+    {
+        if (tid < s && i + s < data.size())
+            flags[tid] += flags[tid + s];
+        __syncthreads();
+    }
+
+    int val = 0;
+
+    if (tid < 32)
+        val = warp_reduce(flags[tid]);
+
+    if (tid == 0)
+        flags[0] = val;
+
+    __syncthreads();
+
+    // The reduced value must be equal to 0 or the size - 1 if the data is
+    // sorted
+    if (flags[0] != 0 && flags[0] < data.size() - 1)
+    {
+        return;
+    }
+    __syncthreads();
+
+    // Checking if the distance if in the said boundaries
+    if (tid > 0)
+    {
+        int dist = abs(sdata[tid] - sdata[tid - 1]);
+        flags[tid] = dist >= 1 && dist <= 3 ? 1 : 0;
+    }
+    else
+    {
+        flags[tid] = 0;
+    }
+    __syncthreads();
+
+    // Block level Reduce (once again)
+    for (int s = blockDim.x / 2; s > 32; s /= 2)
+    {
+        if (tid < s && i + s < data.size() - 1)
+            flags[tid] += flags[tid + s];
+        __syncthreads();
+    }
+
+    val = 0;
+    if (tid < 32)
+        val = warp_reduce(flags[tid]);
+
+    if (tid == 0 && val == data.size() - 1)
+        result[0]++;
 }
 
-static unsigned long long part_2(const std::string& filename)
+static int part_2(const std::string& filename)
 {
-    // reading the input
-    // If we were not using CUDA, we could use a map to count. Unfortunately, we
-    // are on GPU.
-    // std::vector<unsigned long long> left;
-    // std::vector<unsigned long long> right;
-    // std::ifstream input(filename);
-    // std::string line;
-    // unsigned long long maximum = 0;
-    // while (getline(input, line))
-    // {
-    //     std::stringstream ss(line);
-    //     unsigned long long first = 0;
-    //     ss >> first;
-    //     left.push_back(first);
-    //     ss >> first;
-    //     if (first > maximum)
-    //         maximum = first;
-    //     right.push_back(first);
-    // }
-    //
-    // // Putting the data on GPU
-    // rmm::device_uvector<unsigned long long> dleft(left.size(),
-    //                                               res.get_stream());
-    // raft::copy(dleft.data(), left.data(), left.size(), dleft.stream());
-    // rmm::device_uvector<unsigned long long> dright(right.size(),
-    //                                                dleft.stream());
-    // raft::copy(dright.data(), right.data(), right.size(), dright.stream());
-    //
-    // // Creating a container to count the amount of occurence of each left
-    // values rmm::device_uvector<unsigned long long> bins(
-    //     maximum * sizeof(unsigned long long), dleft.stream());
-    // thrust::uninitialized_fill(thrust::cuda::par.on(dleft.stream()),
-    //                            bins.begin(), bins.end(), 0);
-    //
-    // // Since I am late for the first day, i did a very simple histogram which
-    // // write in global memroy with an atomic. The memory access pattern is
-    // // awfull.
-    // // I might want to replace this part of the code with a CUB histogram,
-    // but
-    // // once again, it is awfull
-    // constexpr unsigned int blockSize = 256;
-    // const unsigned int gridSize = (blockSize - 1 + dright.size()) /
-    // blockSize; histogram<<<gridSize, blockSize, 0, dright.stream()>>>(
-    //     raft::device_span<unsigned long long>(dright.data(), dright.size()),
-    //     raft::device_span<unsigned long long>(bins.data(), bins.size()));
-    //
-    // // Preparing the computation of the value
-    // unsigned long long* raw_bins = bins.data();
-    // const auto val_iterator = thrust::make_transform_iterator(
-    //     dleft.begin(),
-    //     [raw_bins, maximum] __device__(
-    //         unsigned long long const& val) -> unsigned long long {
-    //         return val >= maximum ? 0 : val * raw_bins[val];
-    //     });
-    // unsigned long long init = 0;
-    // // Computing the reduce
-    // auto result =
-    //     thrust::reduce(thrust::cuda::par.on(bins.stream()), val_iterator,
-    //                    val_iterator + left.size(), init);
-    // return result;
-    return 0;
+    std::ifstream input(filename);
+    std::string line;
+    int tot_result = 0;
+
+    // If every line was of the same size, we could use MPI to read each line
+    // with fseek and make a better use of the streams
+    while (getline(input, line))
+    {
+        // If we were not using GPU, we could handle most of the logic here
+        std::vector<int> level;
+        std::stringstream ss(line);
+        int first = 0;
+        while (ss >> first)
+        {
+            level.push_back(first);
+        }
+        int* result;
+        CUDA_CHECK_ERROR(cudaMallocManaged(&result, sizeof(int)));
+        CUDA_CHECK_ERROR(cudaMemset(result, 0, sizeof(int)));
+
+        {
+            rmm::device_uvector<int> dlevel(level.size(),
+                                            rmm::cuda_stream_default);
+            raft::copy(dlevel.data(), level.data(), level.size(),
+                       rmm::cuda_stream_default);
+
+            level_handling_block<<<1, level.size(),
+                                   dlevel.size() * 2 * sizeof(int) - 1>>>(
+                raft::device_span<int>(dlevel.data(), dlevel.size()),
+                raft::device_span<int>(result, 1));
+            cudaDeviceSynchronize();
+        }
+
+        // Well... bruteforce is a way...
+        size_t i = 0;
+        while (*result == 0 && i < level.size())
+        {
+            std::vector<int> short_level;
+            for (int j = 0; j < level.size(); j++)
+            {
+                if (j == i)
+                    continue;
+                short_level.push_back(level[j]);
+            }
+            rmm::device_uvector<int> dlevel(short_level.size(),
+                                            rmm::cuda_stream_default);
+            raft::copy(dlevel.data(), short_level.data(), short_level.size(),
+                       rmm::cuda_stream_default);
+
+            level_handling_block_unified<<<
+                1, short_level.size(), dlevel.size() * 2 * sizeof(int) - 1>>>(
+                raft::device_span<int>(dlevel.data(), dlevel.size()),
+                raft::device_span<int>(result, 1));
+            cudaDeviceSynchronize();
+            i++;
+        }
+        tot_result += *result;
+        CUDA_CHECK_ERROR(cudaFree(result));
+    }
+
+    return tot_result;
 }
 
 int main(int argc, char* argv[])
