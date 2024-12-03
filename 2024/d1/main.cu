@@ -131,6 +131,8 @@ static unsigned long long part_2(raft::device_resources& res,
     // Since I am late for the first day, i did a very simple histogram which
     // write in global memroy with an atomic. The memory access pattern is
     // awfull.
+    // I might want to replace this part of the code with a CUB histogram, but
+    // once again, it is awfull
     constexpr unsigned int blockSize = 256;
     const unsigned int gridSize = (blockSize - 1 + dright.size()) / blockSize;
     histogram<<<gridSize, blockSize, 0, dright.stream()>>>(

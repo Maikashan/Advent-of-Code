@@ -38,3 +38,4 @@ function(aoc_day day)
 endfunction()
 
 aoc_day(d1 d1/main.cu)
+aoc_day(d2 d2/main.cu)
