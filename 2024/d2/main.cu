@@ -160,7 +160,8 @@ static int part_1(const std::string& filename)
         // I have multiple issue with this code.
         // - The rows do not all have the same amount of columns -> Challenging
         // to efficiently prepare my data for the GPU, and will have a lot of
-        // work imbalance.
+        // work imbalance. A better way to do it would be to consider it as a
+        // Sparse Matrix during parsing
         // - Each row is very short, not very worth it to use my gpu on one line
         // Since it is only the second day and i am late, i will do something
         // neither optimized nor smart
